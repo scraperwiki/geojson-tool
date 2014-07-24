@@ -1,0 +1,5 @@
+{
+  "displayName": "Import GeoJSON",
+  "description": "Put geocoded data in a spreadheet or export via OData",
+  "color": "#03414e"
+}
