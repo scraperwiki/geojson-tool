@@ -10,7 +10,29 @@
     <script src="//scraperwiki.com/vendor/js/bootstrap.min.js"></script>
     <script src="//scraperwiki.com/js/scraperwiki.js"></script>
     <script>
+      function loadSettings(callback) {
+        scraperwiki.tool.exec('touch allSettings.json; cat allSettings.json',
+          function(content) {
+            if(content) {
+              try {
+                window.allSettings = JSON.parse(content)
+              } catch(e) {
+                smart_alert("Failed to parse settings file",
+                  String(e), "\n\n" + content)
+              }
+            }
+            callback()
+          })
+      }
+      function populateForm() {
+        // :todo(drj): abstract list of identifiers to populate.
+        $('#source').val(window.allSettings.source)
+      }
+
       $(function() {
+          loadSettings(populateForm)
+
+          // Setup the "submit" button.
           var execSuccess = function(execOutput) {
             var datasetUrl = "/dataset/" + scraperwiki.box
             scraperwiki.tool.redirect(datasetUrl)
