@@ -16,8 +16,8 @@
             scraperwiki.tool.redirect(datasetUrl)
           }
           $('#submit').on('click', function() {
-            $(this).addClass('loading').html('Searching…')
-            var q = $('#q').val()
+            $(this).addClass('loading').html('Converting…')
+            var q = $('#source').val()
             scraperwiki.exec("tool/geojson.py " + scraperwiki.shellEscape(q),
               execSuccess)
             scraperwiki.tool.rename("GeoJSON from " + q)
@@ -28,7 +28,7 @@
   <body style="text-align: center">
     <h1>Enter GeoJSON URL</h1>
     <div class="input-append">
-      <input type="text" name="q" size="80" id="q"
+      <input type="text" name="source" size="80" id="source"
       placeholder="URL, eg: http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson">
       <button class="btn btn-primary" type="submit" id="submit">Import</button>
     </div>
