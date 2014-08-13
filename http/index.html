@@ -28,7 +28,7 @@
       }
       function populateForm() {
         // :todo(drj): abstract list of identifiers to populate.
-        $('#source').val(window.allSettings.source)
+        $('#source-url').val(window.allSettings.source)
       }
 
       $(function() {
@@ -41,7 +41,7 @@
           }
           $('#submit').on('click', function() {
             $(this).addClass('loading').html('Converting…')
-            var q = $('#source').val()
+            var q = $('#source-url').val()
             scraperwiki.exec("tool/geojson.py " + scraperwiki.shellEscape(q),
               execSuccess)
             scraperwiki.tool.rename("GeoJSON from " + q)
@@ -52,19 +52,20 @@
       })
     </script>
   </head>
-  <body style="text-align: center">
-    <h1>Enter GeoJSON URL</h1>
-    <div class="input-append">
-      <input type="text" name="source" size="80" id="source"
-      placeholder="URL, eg: http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson">
-      <button class="btn btn-primary" type="submit" id="submit">Get Data</button>
+  <body>
+    <div id="settings">
+      <p id="label"><label for="source-url">Extract from GeoJSON URL:</label></p>
+      <p id="inputs">
+        <input type="text" name="source" size="80" id="source-url"
+        placeholder="URL, eg: http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson">
+        <button class="btn btn-primary pull-right" type="submit" id="submit">Get Data</button>
+      </p>
+      <p id="message" class="muted">Try any GeoJSON URL
+      or try <a id="show-examples">one of our examples</a>. <!--
+      <label id="upload-a-file" for="file">upload a file from your
+      computer</label> -->
+      </p>
     </div>
-
-    <p id="message" class="muted">Try any GeoJSON URL
-    or try <a id="show-examples">one of our examples</a>. <!--
-    <label id="upload-a-file" for="file">upload a file from your
-    computer</label> -->
-    </p>
 
     <div id="examples">
       <ul>
