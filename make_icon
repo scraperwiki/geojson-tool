@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# This script makes the icon.png file from the .svg file.
+# If you have inkscape installed.
+
+inkscape --export-background-opacity 0 --export-width 40 --export-height 40 --export-png http/icon.png icon.svg
