@@ -44,7 +44,7 @@
             var q = $('#source-url').val()
             scraperwiki.exec("tool/geojson.py " + scraperwiki.shellEscape(q),
               execSuccess)
-            scraperwiki.tool.rename("GeoJSON from " + q)
+            scraperwiki.dataset.name("GeoJSON from " + name_from_url(q))
           })
 
           // various "stuff", mostly nicked from table-extract-tool

@@ -1,3 +1,14 @@
+
+var name_from_url = function(url) {
+  var bits = url.split("/")
+  if (bits.length > 2) {
+    var ret = bits[2] 
+    ret = ret.replace("www.", "")
+    return ret
+  }
+  return url
+}
+
 var stuff_init = function() {
   // $('#source-go').on('click', source_go)
   // $('#source-clear').on('click', source_clear)
