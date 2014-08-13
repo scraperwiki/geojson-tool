@@ -39,8 +39,8 @@
             var datasetUrl = "/dataset/" + scraperwiki.box
             scraperwiki.tool.redirect(datasetUrl)
           }
-          $('#submit').on('click', function() {
-            $(this).addClass('loading').html('Converting…')
+          $('#source-go').on('click', function() {
+            $(this).addClass('loading').html('Fetching…')
             var q = $('#source-url').val()
             scraperwiki.exec("tool/geojson.py " + scraperwiki.shellEscape(q),
               execSuccess)
@@ -54,11 +54,11 @@
   </head>
   <body>
     <div id="settings">
-      <p id="label"><label for="source-url">Extract from GeoJSON URL:</label></p>
+      <p id="label"><label for="source-url">Get GeoJSON from URL:</label></p>
       <p id="inputs">
         <input type="text" name="source" size="80" id="source-url"
         placeholder="URL, eg: http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson">
-        <button class="btn btn-primary pull-right" type="submit" id="submit">Get Data</button>
+        <button class="btn btn-primary pull-right" type="submit" id="source-go">Get Data</button>
       </p>
       <p id="message" class="muted">Try any GeoJSON URL
       or try <a id="show-examples">one of our examples</a>. <!--
@@ -78,7 +78,7 @@
 $(function(){
   $('#q').on('keypress', function(e){
     if(e.which == 13) {
-      $('#submit').trigger('click')
+      $('#source-go').trigger('click')
     }
   })
 })
