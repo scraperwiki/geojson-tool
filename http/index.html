@@ -15,6 +15,7 @@
       function loadSettings(callback) {
         scraperwiki.tool.exec('touch allSettings.json; cat allSettings.json',
           function(content) {
+            window.allSettings = {}
             if(content) {
               try {
                 window.allSettings = JSON.parse(content)
