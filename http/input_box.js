@@ -1,5 +1,5 @@
 // :todo(drj): move to scraperwiki.js
-var smart_alert = function(message, technical_details){
+var smartAlert = function(message, technical_details) {
   var report_btn = '<span id="report_btn">Click the big red <strong>Help</strong> button for assistance</span>'
   var detail_btn = '<a id="detail_btn">click here to show technical details</a>'
   scraperwiki.alert(message, '<p class="actions">' + report_btn + ' or ' +
@@ -48,7 +48,7 @@ function loadSettings(callback) {
         try {
           window.allSettings = JSON.parse(content)
         } catch(e) {
-          smart_alert("Failed to parse settings file",
+          smartAlert("Failed to parse settings file",
             String(e), "\n\n" + content)
         }
       }
@@ -65,7 +65,7 @@ $(function() {
       // Note: "success" here means that the command executed,
       // but says nothing about what it did.
       if(execOutput != '') {
-        smart_alert("An error occurred", execOutput)
+        smartAlert("An error occurred", execOutput)
         return
       }
       var datasetUrl = "/dataset/" + scraperwiki.box
