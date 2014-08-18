@@ -1,13 +1,13 @@
 // :todo(drj): move to scraperwiki.js
-var smartAlert = function(message, technical_details) {
-  var report_btn = '<span id="report_btn">Click the big red <strong>Help</strong> button for assistance</span>'
-  var detail_btn = '<a id="detail_btn">click here to show technical details</a>'
-  scraperwiki.alert(message, '<p class="actions">' + report_btn + ' or ' +
-    detail_btn + '</p><pre>' + technical_details + '\n\n' +
-    obtain_stack() + '</pre>', true)
+var smartAlert = function(message, technicalDetails) {
+  var reportButton = '<span id="report_btn">Click the big red <strong>Help</strong> button for assistance</span>'
+  var detailButton = '<a id="detail_btn">click here to show technical details</a>'
+  scraperwiki.alert(message, '<p class="actions">' + reportButton + ' or ' +
+    detailButton + '</p><pre>' + technicalDetails + '\n\n' +
+    obtainStack() + '</pre>', true)
 }
 
-var obtain_stack = function() {
+var obtainStack = function() {
   return "Origin:\n\n" + printStackTrace().slice(4).join("\n");
 }
 
