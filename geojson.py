@@ -7,8 +7,6 @@ import requests
 
 import scraperwiki
 
-URL="http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson"
-
 def main(argv=None):
     if argv is None:
         argv = sys.argv
