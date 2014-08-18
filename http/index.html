@@ -12,6 +12,20 @@
     <script src="//scraperwiki.com/js/scraperwiki.js"></script>
     <script src="input_box.js"></script>
     <script>
+      function saveSettings() {
+        // Save all elements that have class "sw-persist".
+        // :todo(drj): doesn't work for type="checkbox"; fix that.
+        var toSave = {}
+        $('.sw-persist').each(function(i, element) {
+          var $element = $(element)
+          toSave[element.id] = $element.val()
+        });
+        var saveString = JSON.stringify(toSave, null, 4)
+        var escapedString = scraperwiki.shellEscape(saveString)
+        scraperwiki.exec(
+          "printf > allSettings.json '%s' " + escapedString
+          , function(){})
+      }
       function loadSettings(callback) {
         scraperwiki.tool.exec('touch allSettings.json; cat allSettings.json',
           function(content) {
@@ -28,8 +42,10 @@
           })
       }
       function populateForm() {
-        // :todo(drj): abstract list of identifiers to populate.
-        $('#source-url').val(window.allSettings.source)
+        $('.sw-persist').each(function(i, element) {
+          var $element = $(element)
+          $element.val(window.allSettings[element.id])
+        });
       }
 
       $(function() {
@@ -46,6 +62,7 @@
             scraperwiki.exec("tool/geojson.py " + scraperwiki.shellEscape(q),
               execSuccess)
             scraperwiki.dataset.name("GeoJSON from " + name_from_url(q))
+            saveSettings()
           })
 
           // various "stuff", mostly nicked from table-extract-tool
@@ -57,8 +74,9 @@
     <div id="settings">
       <p id="label"><label for="source-url">Get GeoJSON from URL:</label></p>
       <p id="inputs">
-        <input type="text" name="source" size="80" id="source-url"
-        placeholder="URL, eg: http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson">
+        <input type="text" name="source-url" size="80" id="source-url"
+          class="sw-persist"
+          placeholder="URL, eg: http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson">
         <button class="btn btn-primary pull-right" type="submit" id="source-go">Get Data</button>
       </p>
       <p id="message" class="muted">Try any GeoJSON URL
