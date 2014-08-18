@@ -14,7 +14,7 @@ var obtainStack = function() {
 
 // :todo(drj): this function is pretty generic and should be
 // in scraperwiki.js
-function saveSettings() {
+function saveSettings(callback) {
   // Save all elements that have class "sw-persist".
   // :todo(drj): doesn't work for type="checkbox"; fix that.
   var toSave = {}
@@ -26,7 +26,7 @@ function saveSettings() {
   var escapedString = scraperwiki.shellEscape(saveString)
   scraperwiki.exec(
     "printf > allSettings.json '%s' " + escapedString
-    , function(){})
+    , callback)
 }
 // :todo(drj): this function is pretty generic and should be
 // in scraperwiki.js
@@ -72,11 +72,11 @@ $(function() {
     }
     $('#source-go').on('click', function() {
       $(this).addClass('loading').html('Fetching…')
-      var q = $('#source-url').val()
-      scraperwiki.exec("tool/geojson.py " + scraperwiki.shellEscape(q),
-        execSuccess)
-      scraperwiki.dataset.name("GeoJSON from " + name_from_url(q))
-      saveSettings()
+      saveSettings(function() {
+        scraperwiki.exec("tool/geojson.py", execSuccess)
+        var q = $('#source-url').val()
+        scraperwiki.dataset.name("GeoJSON from " + name_from_url(q))
+      })
     })
 
     setup_behaviour()
