@@ -11,64 +11,6 @@
     <script src="//scraperwiki.com/vendor/js/bootstrap.min.js"></script>
     <script src="//scraperwiki.com/js/scraperwiki.js"></script>
     <script src="input_box.js"></script>
-    <script>
-      function saveSettings() {
-        // Save all elements that have class "sw-persist".
-        // :todo(drj): doesn't work for type="checkbox"; fix that.
-        var toSave = {}
-        $('.sw-persist').each(function(i, element) {
-          var $element = $(element)
-          toSave[element.id] = $element.val()
-        });
-        var saveString = JSON.stringify(toSave, null, 4)
-        var escapedString = scraperwiki.shellEscape(saveString)
-        scraperwiki.exec(
-          "printf > allSettings.json '%s' " + escapedString
-          , function(){})
-      }
-      function loadSettings(callback) {
-        scraperwiki.tool.exec('touch allSettings.json; cat allSettings.json',
-          function(content) {
-            window.allSettings = {}
-            if(content) {
-              try {
-                window.allSettings = JSON.parse(content)
-              } catch(e) {
-                smart_alert("Failed to parse settings file",
-                  String(e), "\n\n" + content)
-              }
-            }
-            callback()
-          })
-      }
-      function populateForm() {
-        $('.sw-persist').each(function(i, element) {
-          var $element = $(element)
-          $element.val(window.allSettings[element.id])
-        });
-      }
-
-      $(function() {
-          loadSettings(populateForm)
-
-          // Setup the "submit" button.
-          var execSuccess = function(execOutput) {
-            var datasetUrl = "/dataset/" + scraperwiki.box
-            scraperwiki.tool.redirect(datasetUrl)
-          }
-          $('#source-go').on('click', function() {
-            $(this).addClass('loading').html('Fetching…')
-            var q = $('#source-url').val()
-            scraperwiki.exec("tool/geojson.py " + scraperwiki.shellEscape(q),
-              execSuccess)
-            scraperwiki.dataset.name("GeoJSON from " + name_from_url(q))
-            saveSettings()
-          })
-
-          // various "stuff", mostly nicked from table-extract-tool
-          stuff_init()
-      })
-    </script>
   </head>
   <body>
     <div id="settings">

@@ -1,4 +1,68 @@
+// :todo(drj): this function is pretty generic and should be
+// in scraperwiki.js
+function saveSettings() {
+  // Save all elements that have class "sw-persist".
+  // :todo(drj): doesn't work for type="checkbox"; fix that.
+  var toSave = {}
+  $('.sw-persist').each(function(i, element) {
+    var $element = $(element)
+    toSave[element.id] = $element.val()
+  });
+  var saveString = JSON.stringify(toSave, null, 4)
+  var escapedString = scraperwiki.shellEscape(saveString)
+  scraperwiki.exec(
+    "printf > allSettings.json '%s' " + escapedString
+    , function(){})
+}
+// :todo(drj): this function is pretty generic and should be
+// in scraperwiki.js
+function loadSettings(callback) {
+  // after the exec (below), we call this function to fill in
+  // all elements that have the "sw-persist" class.
+  var populateElements = function() {
+    $('.sw-persist').each(function(i, element) {
+      var $element = $(element)
+      $element.val(window.allSettings[element.id])
+    });
+  }
 
+  scraperwiki.tool.exec('touch allSettings.json; cat allSettings.json',
+    function(content) {
+      window.allSettings = {}
+      if(content) {
+        try {
+          window.allSettings = JSON.parse(content)
+        } catch(e) {
+          smart_alert("Failed to parse settings file",
+            String(e), "\n\n" + content)
+        }
+      }
+      populateElements()
+    })
+}
+
+$(function() {
+    loadSettings()
+
+    // Setup the "submit" button.
+    // :todo(drj): make generic and put in scraperwiki.js
+    var execSuccess = function(execOutput) {
+      var datasetUrl = "/dataset/" + scraperwiki.box
+      scraperwiki.tool.redirect(datasetUrl)
+    }
+    $('#source-go').on('click', function() {
+      $(this).addClass('loading').html('Fetching…')
+      var q = $('#source-url').val()
+      scraperwiki.exec("tool/geojson.py " + scraperwiki.shellEscape(q),
+        execSuccess)
+      scraperwiki.dataset.name("GeoJSON from " + name_from_url(q))
+      saveSettings()
+    })
+
+    setup_behaviour()
+})
+
+// :todo(drj): should be generic (in scraperwiki.js?).
 var name_from_url = function(url) {
   var bits = url.split("/")
   if (bits.length > 2) {
@@ -9,15 +73,20 @@ var name_from_url = function(url) {
   return url
 }
 
-var stuff_init = function() {
-  // $('#source-go').on('click', source_go)
-  // $('#source-clear').on('click', source_clear)
+// Setup various minor bits of user-interface:
+//   Pressing return should have same effect as button click;
+//   Hovering over the example opens popup;
+//   Clicking on popup populates the box.
+var setup_behaviour = function() {
+  // :todo(drj): should be in scraperwiki.js
   $("#source-url").attr('disabled', false).on('keyup', function(e){
     if(e.which == 13){  // carriage return
       e.preventDefault()
       $('#source-go').trigger('click')
     }
   })
+
+  // :todo(drj): should be in scraperwiki.js
   $('#show-examples').popover({
     content: function(){
       return $('#examples').html()
@@ -39,24 +108,6 @@ var stuff_init = function() {
     var $a = $('#show-examples')
     if( ! $a.is(e.target) && $a.has(e.target).length === 0 && $('.popover').has(e.target).length === 0 ){
       $a.popover('hide')
-    }
-  })
-
-  if(typeof window.source_url !== "undefined"){
-    if(typeof window.source_filename !== "undefined") {
-      $('#source-url').val(window.source_filename)
-    } else {
-      $('#source-url').val(window.source_url)
-    }
-    source_disable_controls()
-  }
-
-  $('#next').val(window.location)
-  $('#apikey').val(scraperwiki.readSettings().source.apikey)
-  $('#file').on('change', function(){
-    if( $(this).val() != '' ){
-      $('#source-go').addClass('loading disabled').html("Uploading&hellip;")
-      $('#up :submit').trigger('click')
     }
   })
 }
