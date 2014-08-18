@@ -12,7 +12,6 @@ var obtainStack = function() {
 }
 
 
-
 // :todo(drj): this function is pretty generic and should be
 // in scraperwiki.js
 function saveSettings() {
