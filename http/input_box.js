@@ -1,3 +1,18 @@
+// :todo(drj): move to scraperwiki.js
+var smartAlert = function(message, technicalDetails) {
+  var reportButton = '<span id="report_btn">Click the big red <strong>Help</strong> button for assistance</span>'
+  var detailButton = '<a id="detail_btn">click here to show technical details</a>'
+  scraperwiki.alert(message, '<p class="actions">' + reportButton + ' or ' +
+    detailButton + '</p><pre>' + technicalDetails + '\n\n' +
+    obtainStack() + '</pre>', true)
+}
+
+var obtainStack = function() {
+  return "Origin:\n\n" + printStackTrace().slice(4).join("\n");
+}
+
+
+
 // :todo(drj): this function is pretty generic and should be
 // in scraperwiki.js
 function saveSettings() {
@@ -33,7 +48,7 @@ function loadSettings(callback) {
         try {
           window.allSettings = JSON.parse(content)
         } catch(e) {
-          smart_alert("Failed to parse settings file",
+          smartAlert("Failed to parse settings file",
             String(e), "\n\n" + content)
         }
       }
@@ -47,6 +62,12 @@ $(function() {
     // Setup the "submit" button.
     // :todo(drj): make generic and put in scraperwiki.js
     var execSuccess = function(execOutput) {
+      // Note: "success" here means that the command executed,
+      // but says nothing about what it did.
+      if(execOutput != '') {
+        smartAlert("An error occurred", execOutput)
+        return
+      }
       var datasetUrl = "/dataset/" + scraperwiki.box
       scraperwiki.tool.redirect(datasetUrl)
     }
@@ -109,5 +130,10 @@ var setup_behaviour = function() {
     if( ! $a.is(e.target) && $a.has(e.target).length === 0 && $('.popover').has(e.target).length === 0 ){
       $a.popover('hide')
     }
+  })
+
+  // Make the "show technical details" thing work.
+  $(document).on('click', '.alert #detail_btn', function(){
+    $(this).parents('.alert').find('pre').slideToggle(250)
   })
 }
