@@ -1,3 +1,20 @@
+// :todo(drj): move to scraperwiki.js
+var smart_alert = function(message, technical_details){
+  // var report_btn = '<a class="btn btn-mini" id="report_btn">Report this as a bug</a>'
+  var report_btn = '<span id="report_btn">Click the big red <strong>Help</strong> button for assistance</span>'
+  // var detail_btn = '<a class="btn btn-mini" id="detail_btn">Show technical details</a>'
+  var detail_btn = '<a id="detail_btn">click here to show technical details</a>'
+  scraperwiki.alert(message, '<p class="actions">' + report_btn + ' or ' +
+    detail_btn + '</p><pre>' + technical_details + '\n\n' + obtain_stack() + '</pre>', true)
+    //send_status_to_intercom(technical_details)
+}
+
+var obtain_stack = function() {
+  return "Origin:\n\n" + printStackTrace().slice(4).join("\n");
+}
+
+
+
 // :todo(drj): this function is pretty generic and should be
 // in scraperwiki.js
 function saveSettings() {
@@ -47,6 +64,12 @@ $(function() {
     // Setup the "submit" button.
     // :todo(drj): make generic and put in scraperwiki.js
     var execSuccess = function(execOutput) {
+      // Note: "success" here means that the command executed,
+      // but says nothing about what it did.
+      if(execOutput != '') {
+        smart_alert("An error occurred", execOutput)
+        return
+      }
       var datasetUrl = "/dataset/" + scraperwiki.box
       scraperwiki.tool.redirect(datasetUrl)
     }
@@ -109,5 +132,10 @@ var setup_behaviour = function() {
     if( ! $a.is(e.target) && $a.has(e.target).length === 0 && $('.popover').has(e.target).length === 0 ){
       $a.popover('hide')
     }
+  })
+
+  // Make the "show technical details" thing work.
+  $(document).on('click', '.alert #detail_btn', function(){
+    $(this).parents('.alert').find('pre').slideToggle(250)
   })
 }
