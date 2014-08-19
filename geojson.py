@@ -1,21 +1,27 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+import json
+import os
 import sys
 
 import requests
 
 import scraperwiki
 
-URL="http://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson"
-
 def main(argv=None):
     if argv is None:
         argv = sys.argv
     arg = argv[1:]
 
-    # Expects one argument.
-    url = arg[0]
+    if len(arg) > 0:
+        # Developers can supply URL as an argument...
+        url = arg[0]
+    else:
+        # ... but normally the URL comes from the allSettings.json file
+        with open(os.path.expanduser("~/allSettings.json")) as settings:
+            url = json.load(settings)['source-url']
+
     return convert_one(url)
 
 def convert_one(url):
