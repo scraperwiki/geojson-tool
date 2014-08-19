@@ -30,9 +30,18 @@ def convert_one(url):
     scraperwiki.sql.execute("DROP TABLE IF EXISTS swdata")
     to_save = []
     for feature in j['features']:
+        # `d` is the row we are going to add; it's the
+        # properties of the point.
         d = feature['properties']
+        # Add feature.id to the row if there is one.
         if 'id' in feature:
-            d['id'] = feature['id']
+            # Avoid issue 3 which is when there is already a
+            # property called "id" but with a different case.
+            # https://github.com/scraperwiki/geojson-tool/issues/3
+            # (we do not fix the general version of this case issue)
+            keys = set(k.lower() for k in d.keys())
+            if 'id' not in keys:
+                d['id'] = feature['id']
         g = feature.get('geometry')
         if g and g.get('type') == "Point":
             coordinates = g['coordinates']
