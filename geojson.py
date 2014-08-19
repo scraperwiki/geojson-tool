@@ -28,6 +28,7 @@ def convert_one(url):
     response = requests.get(url)
     j = response.json()
     scraperwiki.sql.execute("DROP TABLE IF EXISTS swdata")
+    to_save = []
     for feature in j['features']:
         d = feature['properties']
         if 'id' in feature:
@@ -40,7 +41,8 @@ def convert_one(url):
                 d['elevation'] = coordinates[2]
             d['longitude'] = longitude
             d['latitude'] = latitude
-        scraperwiki.sql.save([], d)
+        to_save.append(d)
+    scraperwiki.sql.save([], to_save)
 
 if __name__ == '__main__':
     main()
