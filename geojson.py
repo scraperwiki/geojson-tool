@@ -32,8 +32,10 @@ def convert_one(url):
     response = requests.get(url)
     j = response.json()
     scraperwiki.sql.execute("DROP TABLE IF EXISTS swdata")
+    scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
     features = []
-    for feature in j['features']:
+    polygons = []
+    for feature_index, feature in enumerate(j['features'], start=1):
         # The row we are going to add;
         # it's the properties of the feature.
         row = feature['properties']
@@ -50,14 +52,49 @@ def convert_one(url):
         if not geometry:
             continue
         if geometry.get('type') == "Point":
-            coordinates = geometry['coordinates']
-            longitude, latitude = coordinates[:2]
-            if len(coordinates) > 2:
-                row['elevation'] = coordinates[2]
-            row['longitude'] = longitude
-            row['latitude'] = latitude
+            add_point(row, geometry)
+        if geometry.get('type') == "Polygon":
+            add_polygon(feature_index, polygons, geometry)
+
         features.append(row)
     scraperwiki.sql.save([], features)
+    scraperwiki.sql.save([], polygons, table_name="polygon")
+
+def add_point(row, geometry):
+    """
+    Extract the data for a point from the geometry dict, and
+    modify the `row` dict accordingly.
+    """
+
+    assert geometry.get('type') == "Point"
+
+    coordinates = geometry['coordinates']
+    longitude, latitude = coordinates[:2]
+    if len(coordinates) > 2:
+        row['elevation'] = coordinates[2]
+    row['longitude'] = longitude
+    row['latitude'] = latitude
+    return
+
+def add_polygon(feature_index, polygons, geometry):
+    """
+    Extract the data for a polygon from the geometry dict, and
+    add several rows to the `polygons` list.
+    """
+
+    assert geometry.get('type') == "Polygon"
+
+    coordinates = geometry['coordinates']
+    for polygon_index, points in enumerate(coordinates, start=1):
+        for point_index, point in enumerate(points, start=1):
+            row = dict(feature_index=feature_index,
+              polygon_index=polygon_index,
+              point_index=point_index,
+              longitude=point[0],
+              latitude=point[1])
+            polygons.append(row)
+    return
+
 
 if __name__ == '__main__':
     main()
