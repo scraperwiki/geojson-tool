@@ -25,6 +25,10 @@ def main(argv=None):
     return convert_one(url)
 
 def convert_one(url):
+    """
+    Convert a single URL.
+    """
+
     response = requests.get(url)
     j = response.json()
     scraperwiki.sql.execute("DROP TABLE IF EXISTS swdata")
