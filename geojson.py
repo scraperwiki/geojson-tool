@@ -32,30 +32,32 @@ def convert_one(url):
     response = requests.get(url)
     j = response.json()
     scraperwiki.sql.execute("DROP TABLE IF EXISTS swdata")
-    to_save = []
+    features = []
     for feature in j['features']:
-        # `d` is the row we are going to add; it's the
-        # properties of the point.
-        d = feature['properties']
+        # The row we are going to add;
+        # it's the properties of the feature.
+        row = feature['properties']
         # Add feature.id to the row if there is one.
         if 'id' in feature:
             # Avoid issue 3 which is when there is already a
             # property called "id" but with a different case.
             # https://github.com/scraperwiki/geojson-tool/issues/3
             # (we do not fix the general version of this case issue)
-            keys = set(k.lower() for k in d.keys())
+            keys = set(k.lower() for k in row.keys())
             if 'id' not in keys:
-                d['id'] = feature['id']
-        g = feature.get('geometry')
-        if g and g.get('type') == "Point":
-            coordinates = g['coordinates']
+                row['id'] = feature['id']
+        geometry = feature.get('geometry')
+        if not geometry:
+            continue
+        if geometry.get('type') == "Point":
+            coordinates = geometry['coordinates']
             longitude, latitude = coordinates[:2]
             if len(coordinates) > 2:
-                d['elevation'] = coordinates[2]
-            d['longitude'] = longitude
-            d['latitude'] = latitude
-        to_save.append(d)
-    scraperwiki.sql.save([], to_save)
+                row['elevation'] = coordinates[2]
+            row['longitude'] = longitude
+            row['latitude'] = latitude
+        features.append(row)
+    scraperwiki.sql.save([], features)
 
 if __name__ == '__main__':
     main()
