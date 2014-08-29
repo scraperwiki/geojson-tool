@@ -55,6 +55,8 @@ def convert_one(url):
             add_point(row, geometry)
         if geometry.get('type') == "Polygon":
             add_polygon(feature_index, polygons, geometry)
+        if geometry.get('type') == "MultiPolygon":
+            add_multi_polygon(feature_index, polygons, geometry)
 
         features.append(row)
     scraperwiki.sql.save([], features)
@@ -87,6 +89,25 @@ def add_polygon(feature_index, polygons, geometry):
     coordinates = geometry['coordinates']
     for polygon_index, points in enumerate(coordinates, start=1):
         for point_index, point in enumerate(points, start=1):
+            row = dict(feature_index=feature_index,
+              polygon_index=polygon_index,
+              point_index=point_index,
+              longitude=point[0],
+              latitude=point[1])
+            polygons.append(row)
+    return
+
+def add_multi_polygon(feature_index, polygons, geometry):
+    """
+    Extract the data for multiple polygons from the geometry dict, and
+    add several rows to the `polygons` list.
+    """
+
+    assert geometry.get('type') == "MultiPolygon"
+
+    coordinates = geometry['coordinates']
+    for polygon_index, points in enumerate(coordinates, start=1):
+        for point_index, point in enumerate(points[0], start=1):
             row = dict(feature_index=feature_index,
               polygon_index=polygon_index,
               point_index=point_index,
