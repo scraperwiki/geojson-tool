@@ -39,6 +39,8 @@ def convert_one(url):
         # The row we are going to add;
         # it's the properties of the feature.
         row = feature['properties']
+        # Make sure we have a common key across tables
+        row['feature_index'] = feature_index
         # Add feature.id to the row if there is one.
         if 'id' in feature:
             # Avoid issue 3 which is when there is already a
