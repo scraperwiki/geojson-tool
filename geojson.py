@@ -31,7 +31,7 @@ def convert_one(url):
 
     response = requests.get(url)
     j = response.json()
-    scraperwiki.sql.execute("DROP TABLE IF EXISTS swdata")
+    scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
     scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
     features = []
     polygons = []
@@ -61,7 +61,7 @@ def convert_one(url):
             add_multi_polygon(feature_index, polygons, geometry)
 
         features.append(row)
-    scraperwiki.sql.save([], features)
+    scraperwiki.sql.save([], features, table_name="feature")
     scraperwiki.sql.save([], polygons, table_name="polygon")
 
 def add_point(row, geometry):
