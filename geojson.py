@@ -30,9 +30,16 @@ def convert_one(url):
     """
 
     response = requests.get(url)
-    j = response.json()
+    # Avoid using response.json() because it assumes ISO-8859-1 instead of
+    # utf-8 when the server doesn't say. And as per
+    # https://tools.ietf.org/html/rfc7159 JSON will most likely be
+    # encoded in utf-8. Passing the raw (byte) string to json.loads()
+    # does the Right Thing.
+    j = json.loads(response.content)
+
     scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
     scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
+
     features = []
     polygons = []
     for feature_index, feature in enumerate(j['features'], start=1):
@@ -61,6 +68,7 @@ def convert_one(url):
             add_multi_polygon(feature_index, polygons, geometry)
 
         features.append(row)
+
     scraperwiki.sql.save([], features, table_name="feature")
     scraperwiki.sql.save([], polygons, table_name="polygon")
 
