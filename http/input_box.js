@@ -73,7 +73,7 @@ $(function() {
     $('#source-go').on('click', function() {
       $(this).addClass('loading').html('Fetching…')
       saveSettings(function() {
-        scraperwiki.exec("tool/geojson.py", execSuccess)
+        scraperwiki.exec("tool/hooks/refresh", execSuccess)
         var q = $('#source-url').val()
         scraperwiki.dataset.name("GeoJSON from " + name_from_url(q))
       })
