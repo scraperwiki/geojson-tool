@@ -30,6 +30,15 @@ def convert_one(url):
     """
 
     response = requests.get(url)
+
+    return convert_one_json(response)
+
+def convert_one_json(response):
+    """
+    Convert the `response`, which is a requests response object,
+    from JSON to rows of data in the scraperwiki.sql database.
+    """
+
     # Avoid using response.json() because it assumes ISO-8859-1 instead of
     # utf-8 when the server doesn't say. And as per
     # https://tools.ietf.org/html/rfc7159 JSON will most likely be
