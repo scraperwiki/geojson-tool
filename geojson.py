@@ -118,12 +118,14 @@ def parse_kml(content):
 
         geometry = feature.geometry
         if not geometry:
-            continue
-        print(geometry.geom_type) 
+            continue 
         if geometry.geom_type == "Point":
             add_kml_point(row, geometry)
         if geometry.geom_type == "Polygon":
             add_polygon(feature_index, polygons, [geometry.exterior.coords])
+        if geometry.geom_type == "MultiPolygon":
+            kml_polygons = [p.exterior.coords for p in geometry.geoms]
+            add_polygon(feature_index, polygons, kml_polygons)
 
         features.append(row)
 
