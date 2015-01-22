@@ -6,6 +6,11 @@ import os
 import sys
 
 import requests
+import logging
+import lxml
+logging.basicConfig()
+
+from fastkml import kml
 
 import scraperwiki
 
@@ -28,15 +33,22 @@ def convert_one(url):
     """
     Convert a single URL.
     """
-
     response = requests.get(url)
+
+    try:
+        j = json.loads(response.content)
+        parse_geojson(j)
+    except:
+        parse_kml(response.content)
+
+def parse_geojson(j):
+    
     # Avoid using response.json() because it assumes ISO-8859-1 instead of
     # utf-8 when the server doesn't say. And as per
     # https://tools.ietf.org/html/rfc7159 JSON will most likely be
     # encoded in utf-8. Passing the raw (byte) string to json.loads()
     # does the Right Thing.
-    j = json.loads(response.content)
-
+    
     scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
     scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
 
@@ -71,6 +83,18 @@ def convert_one(url):
 
     scraperwiki.sql.save([], features, table_name="feature")
     scraperwiki.sql.save([], polygons, table_name="polygon")
+
+def parse_kml(content):
+    print("Trying to parse KML")
+    scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
+    scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
+
+    features = []
+    polygons = []
+
+    k = kml.KML()
+    k.from_string(content)
+
 
 def add_point(row, geometry):
     """
