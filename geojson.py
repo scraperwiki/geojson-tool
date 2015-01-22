@@ -14,6 +14,19 @@ from fastkml import kml
 
 import scraperwiki
 
+# Examples
+# https://developers.google.com/kml/documentation/KML_Samples.kml
+# http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml
+# Minimal test for ipython:
+"""
+import requests
+from fastkml import kml
+url = "http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml"
+response = requests.get(url)
+k = kml.KML()
+k.from_string(response.content)
+"""
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -95,6 +108,7 @@ def parse_kml(content):
     k.from_string(content)
 
     kml_features = list(k.features())
+    print(len(list(kml_features)))
     feature_list = list(kml_features[0].features())
     attributes = [a for a in dir(feature_list[0]) if a[0] is not "_" ]
 
