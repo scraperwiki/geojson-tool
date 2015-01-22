@@ -1,5 +1,6 @@
-python-dateutil
-pygeoif
-fastkml
-requests
-lxml
+lxml==3.4.1
+pygeoif==0.4.1
+python-dateutil==2.4.0
+requests==2.5.1
+scraperwiki==0.4.1
+fastkml==0.9
