@@ -48,7 +48,7 @@ def parse_geojson(j):
     # https://tools.ietf.org/html/rfc7159 JSON will most likely be
     # encoded in utf-8. Passing the raw (byte) string to json.loads()
     # does the Right Thing.
-    
+
     scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
     scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
 
@@ -58,7 +58,6 @@ def parse_geojson(j):
         # The row we are going to add;
         # it's the properties of the feature.
         row = feature['properties']
-        print(row)
         # Make sure we have a common key across tables
         row['feature_index'] = feature_index
         # Add feature.id to the row if there is one.
@@ -94,11 +93,10 @@ def parse_kml(content):
 
     k = kml.KML()
     k.from_string(content)
-    #print(content)
+
     kml_features = list(k.features())
     feature_list = list(kml_features[0].features())
     attributes = [a for a in dir(feature_list[0]) if a[0] is not "_" ]
-    #print(attributes)
 
     for feature_index, feature in enumerate(feature_list, start=1):
         #print(feature.to_string())
@@ -106,7 +104,6 @@ def parse_kml(content):
         # it's the properties of the feature.
         row = {}
         for a in attributes:
-            #print(a)
             try:
                 value = getattr(feature, a)
                 if type(value) in [str, int]:
@@ -116,12 +113,13 @@ def parse_kml(content):
 
         # Make sure we have a common key across tables
         row['feature_index'] = feature_index
-        # print(row)
+
         # Add feature.id to the row if there is one.
 
         geometry = feature.geometry
         if not geometry:
             continue
+        print(geometry.geom_type) 
         if geometry.geom_type == "Point":
             add_kml_point(row, geometry)
         if geometry.geom_type == "Polygon":
