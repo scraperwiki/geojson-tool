@@ -58,6 +58,7 @@ def parse_geojson(j):
         # The row we are going to add;
         # it's the properties of the feature.
         row = feature['properties']
+        print(row)
         # Make sure we have a common key across tables
         row['feature_index'] = feature_index
         # Add feature.id to the row if there is one.
@@ -75,7 +76,7 @@ def parse_geojson(j):
         if geometry.get('type') == "Point":
             add_point(row, geometry)
         if geometry.get('type') == "Polygon":
-            add_polygon(feature_index, polygons, geometry)
+            add_polygon(feature_index, polygons, geometry['coordinates'])
         if geometry.get('type') == "MultiPolygon":
             add_multi_polygon(feature_index, polygons, geometry)
 
@@ -85,7 +86,6 @@ def parse_geojson(j):
     scraperwiki.sql.save([], polygons, table_name="polygon")
 
 def parse_kml(content):
-    print("Trying to parse KML")
     scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
     scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
 
@@ -94,7 +94,46 @@ def parse_kml(content):
 
     k = kml.KML()
     k.from_string(content)
+    #print(content)
+    kml_features = list(k.features())
+    feature_list = list(kml_features[0].features())
+    attributes = [a for a in dir(feature_list[0]) if a[0] is not "_" ]
+    #print(attributes)
 
+    for feature_index, feature in enumerate(feature_list, start=1):
+        #print(feature.to_string())
+         # The row we are going to add;
+        # it's the properties of the feature.
+        row = {}
+        for a in attributes:
+            #print(a)
+            try:
+                value = getattr(feature, a)
+                if type(value) in [str, int]:
+                    row[a] = value
+            except AttributeError:
+                pass
+
+        # Make sure we have a common key across tables
+        row['feature_index'] = feature_index
+        # print(row)
+        # Add feature.id to the row if there is one.
+
+        geometry = feature.geometry
+        if not geometry:
+            continue
+        if geometry.geom_type == "Point":
+            add_kml_point(row, geometry)
+        if geometry.geom_type == "Polygon":
+            add_polygon(feature_index, polygons, [geometry.exterior.coords])
+
+        features.append(row)
+
+    scraperwiki.sql.save([], features, table_name="feature")
+    scraperwiki.sql.save([], polygons, table_name="polygon")
+
+def add_kml_point(row, geometry):
+    pass
 
 def add_point(row, geometry):
     """
@@ -112,15 +151,12 @@ def add_point(row, geometry):
     row['latitude'] = latitude
     return
 
-def add_polygon(feature_index, polygons, geometry):
+def add_polygon(feature_index, polygons, coordinates):
     """
     Extract the data for a polygon from the geometry dict, and
     add several rows to the `polygons` list.
     """
-
-    assert geometry.get('type') == "Polygon"
-
-    coordinates = geometry['coordinates']
+    
     for polygon_index, points in enumerate(coordinates, start=1):
         for point_index, point in enumerate(points, start=1):
             row = dict(feature_index=feature_index,
