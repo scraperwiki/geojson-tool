@@ -21,7 +21,7 @@ import scraperwiki
 """
 import requests
 from fastkml import kml
-url = "http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml"
+url = "https://developers.google.com/kml/documentation/KML_Samples.kml"
 response = requests.get(url)
 k = kml.KML()
 k.from_string(response.content)
@@ -86,7 +86,7 @@ def parse_geojson(j):
         if not geometry:
             continue
         if geometry.get('type') == "Point":
-            add_point(row, geometry)
+            add_point(row, geometry["coordinates"])
         if geometry.get('type') == "Polygon":
             add_polygon(feature_index, polygons, geometry['coordinates'])
         if geometry.get('type') == "MultiPolygon":
@@ -108,8 +108,13 @@ def parse_kml(content):
     k.from_string(content)
 
     kml_features = list(k.features())
-    print(len(list(kml_features)))
-    feature_list = list(kml_features[0].features())
+
+    # If we have a Folder here then we get the try block, if not we get except
+    try:
+        feature_list = list(kml_features[0].features())
+    except AttributeError:
+        feature_list = kml_features
+
     attributes = [a for a in dir(feature_list[0]) if a[0] is not "_" ]
 
     for feature_index, feature in enumerate(feature_list, start=1):
@@ -134,7 +139,7 @@ def parse_kml(content):
         if not geometry:
             continue 
         if geometry.geom_type == "Point":
-            add_kml_point(row, geometry)
+            add_point(row, geometry.coords[0])
         if geometry.geom_type == "Polygon":
             add_polygon(feature_index, polygons, [geometry.exterior.coords])
         if geometry.geom_type == "MultiPolygon":
@@ -146,18 +151,12 @@ def parse_kml(content):
     scraperwiki.sql.save([], features, table_name="feature")
     scraperwiki.sql.save([], polygons, table_name="polygon")
 
-def add_kml_point(row, geometry):
-    pass
-
-def add_point(row, geometry):
+def add_point(row, coordinates):
     """
     Extract the data for a point from the geometry dict, and
     modify the `row` dict accordingly.
     """
 
-    assert geometry.get('type') == "Point"
-
-    coordinates = geometry['coordinates']
     longitude, latitude = coordinates[:2]
     if len(coordinates) > 2:
         row['elevation'] = coordinates[2]
