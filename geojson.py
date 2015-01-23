@@ -48,13 +48,22 @@ def convert_one(url):
     """
     response = requests.get(url)
 
+    scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
+    scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
+
+    features = []
+    polygons = []
+
     try:
         j = json.loads(response.content)
-        parse_geojson(j)
+        features, polygons = parse_geojson(j, features, polygons)
     except:
-        parse_kml(response.content)
+        features, polygons = parse_kml(response.content, features, polygons)
 
-def parse_geojson(j):
+    scraperwiki.sql.save([], features, table_name="feature")
+    scraperwiki.sql.save([], polygons, table_name="polygon")
+
+def parse_geojson(j, features, polygons):
     
     # Avoid using response.json() because it assumes ISO-8859-1 instead of
     # utf-8 when the server doesn't say. And as per
@@ -62,11 +71,6 @@ def parse_geojson(j):
     # encoded in utf-8. Passing the raw (byte) string to json.loads()
     # does the Right Thing.
 
-    scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
-    scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
-
-    features = []
-    polygons = []
     for feature_index, feature in enumerate(j['features'], start=1):
         # The row we are going to add;
         # it's the properties of the feature.
@@ -94,16 +98,9 @@ def parse_geojson(j):
 
         features.append(row)
 
-    scraperwiki.sql.save([], features, table_name="feature")
-    scraperwiki.sql.save([], polygons, table_name="polygon")
+    return features, polygons
 
-def parse_kml(content):
-    scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
-    scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
-
-    features = []
-    polygons = []
-
+def parse_kml(content, features, polygons):
     k = kml.KML()
     k.from_string(content)
 
@@ -148,9 +145,8 @@ def parse_kml(content):
 
         features.append(row)
 
-    scraperwiki.sql.save([], features, table_name="feature")
-    scraperwiki.sql.save([], polygons, table_name="polygon")
-
+    return features, polygons
+    
 def add_point(row, coordinates):
     """
     Extract the data for a point from the geometry dict, and
@@ -202,3 +198,4 @@ def add_multi_polygon(feature_index, polygons, geometry):
 
 if __name__ == '__main__':
     main()
+
