@@ -8,21 +8,22 @@ import sys
 import requests
 import logging
 import lxml
-logging.basicConfig()
+logging.basicConfig(level=logging.DEBUG)
 
 from fastkml import kml
 
 import scraperwiki
 
 # Examples
-# https://developers.google.com/kml/documentation/KML_Samples.kml - Document at root
-# http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml - features at root
-# https://dl.dropboxusercontent.com/u/21886071/CCC_BSC%20Feb2013%20%28clipcoast%20200m%29%20KML%20format.KML - folders at root
+# python geojson.py https://developers.google.com/kml/documentation/KML_Samples.kml # Document at root
+# python geojson.py http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml # features at root
+# python geojson.py https://dl.dropboxusercontent.com/u/21886071/CCC_BSC%20Feb2013%20%28clipcoast%20200m%29%20KML%20format.KML # folders at root
+# python geojson.py https://dl.dropboxusercontent.com/u/21886071/countries_world.kml # document at root but no folders?
 # Minimal test for ipython:
 """
 import requests
 from fastkml import kml
-url = "https://developers.google.com/kml/documentation/KML_Samples.kml"
+url = "https://dl.dropboxusercontent.com/u/21886071/countries_world.kml"
 response = requests.get(url)
 k = kml.KML()
 k.from_string(response.content)
@@ -35,6 +36,8 @@ k.from_string(response.content)
 # folders = list(top_level[0].features())
 # feature_list = list(folders[0].features())
 #
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -49,6 +52,7 @@ def main(argv=None):
             url = json.load(settings)['source-url']
 
     return convert_one(url)
+
 
 def convert_one(url):
     """
@@ -66,13 +70,18 @@ def convert_one(url):
         j = json.loads(response.content)
         features, polygons = parse_geojson(j, features, polygons)
     except:
-        features, polygons = parse_kml(response.content, features, polygons)
+        k = kml.KML()
+        k.from_string(response.content)
+        features, polygons = parse_kml(k, features, polygons)
 
+    logging.debug(("Writing {} features, and {} polygons to db".format(
+        len(features), len(polygons))))
     scraperwiki.sql.save([], features, table_name="feature")
     scraperwiki.sql.save([], polygons, table_name="polygon")
 
+
 def parse_geojson(j, features, polygons):
-    
+
     # Avoid using response.json() because it assumes ISO-8859-1 instead of
     # utf-8 when the server doesn't say. And as per
     # https://tools.ietf.org/html/rfc7159 JSON will most likely be
@@ -108,42 +117,27 @@ def parse_geojson(j, features, polygons):
 
     return features, polygons
 
-def parse_kml(content, features, polygons):
-    k = kml.KML()
-    k.from_string(content)
 
-    kml_features = list(k.features())
+def parse_kml(k, features, polygons):
 
     # KML files can have features, folders or document at the root level
     folders = []
-    folder_names = [] 
+    folder_names = []
 
-    if type(kml_features[0]) is kml.Document:
-        #Document at top level
-        folder_list = list(kml_features[0].features())
-        for f in folder_list:
-            folders.append(f.features())
-            folder_names.append(f.name)
-    elif type(kml_features[0]) is kml.Folder:
-        # Folder at top level
-        feature_list = list(kml_features[0].features())
-        folders.append(feature_list)
-        folder_names = ["Folder"]
-    elif type(kml_features[0]) is kml.Placemark:
-        # Feature at top level
-        feature_list = kml_features
-        folders.append(feature_list)
-        folder_names = ["Feature"]
+    folders, folder_names = walk_kml_tree(k, folders, folder_names)
 
-    # We need to have a list of folders at this point, each containing a list of features
+    # We need to have a list of folders at this point, each containing a list
+    # of features
     for i, folder in enumerate(folders, start=0):
         # get folder name
-        # if we have a placemark or a folder at top level we might want to fake the folder_name
+        # if we have a placemark or a folder at top level we might want to fake
+        # the folder_name
         folder_name = folder_names[i]
         for feature_index, feature in enumerate(folder, start=1):
-            attributes = [a for a in dir(feature) if a[0] is not "_" ]
-            #print(feature.to_string())
-             # The row we are going to add;
+            attributes = [a for a in dir(feature) if a[0] is not "_"]
+            #print(dir(feature.geometry))
+            # print(feature.to_string())
+            # The row we are going to add;
             # it's the properties of the feature.
             row = {}
             for a in attributes:
@@ -161,21 +155,77 @@ def parse_kml(content, features, polygons):
             try:
                 geometry = feature.geometry
                 if not geometry:
-                    continue 
+                    continue
                 if geometry.geom_type == "Point":
                     add_point(row, geometry.coords[0])
                 if geometry.geom_type == "Polygon":
-                    add_polygon(folder_name, feature_index, polygons, [geometry.exterior.coords])
+                    add_polygon(
+                        folder_name, feature_index, polygons, [geometry.exterior.coords])
                 if geometry.geom_type == "MultiPolygon":
                     kml_polygons = [p.exterior.coords for p in geometry.geoms]
-                    add_polygon(folder_name, feature_index, polygons, kml_polygons)
+                    add_polygon(
+                        folder_name, feature_index, polygons, kml_polygons)
+                if geometry.geom_type == "GeometryCollection":
+                    print("Found a GeometryCollection")
+                    list(geometry.geoms)
+                    for g in list(geometry.geoms):
+                        print(g.geom_type)
+                    kml_polygons = [p.exterior.coords for p in geometry.geoms]
+                    add_polygon(
+                        folder_name, feature_index, polygons, kml_polygons)
 
                 features.append(row)
             except:
                 print("No geometry in {}".format(feature))
 
     return features, polygons
-    
+
+
+def walk_kml_tree(k, folders, folder_names):
+    if type(k) is kml.Placemark:
+        # Feature at top level
+        folders.append([k])
+        if len(folder_names) == 0:
+            folder_names = ["Feature"]
+        else:
+            folder_names.append(folder_names[-1] + "-Feature")
+        return folders, folder_names 
+
+    kml_features = list(k.features())
+    if len(kml_features) ==  0:
+        return folders, folder_names
+
+    if type(kml_features[0]) is kml.Document:
+        # Handle a Document
+        assert len(kml_features) == 1
+        if kml_features[0].name is not None:
+            folder_names.append(kml_features[0].name)
+        else:
+            folder_names.append("Document")
+
+        for f in list(kml_features[0].features()):
+            folders, folder_names = walk_kml_tree(f, folders, folder_names)
+    elif type(kml_features[0]) is kml.Folder:
+        # Folder at top level
+        feature_list = list(kml_features[0].features())
+        folders.append(feature_list)
+        if len(folder_names) == 0:
+            folder_names = ["Folder"] #kml_features[0].name
+        else:
+            folder_names.append(folder_names[-1] + "Folder") #kml_features[0].name)
+    elif type(kml_features[0]) is kml.Placemark:
+        # Feature at top level
+        feature_list = kml_features
+        folders.append(feature_list)
+        if len(folder_names) == 0:
+            folder_names = ["Feature"]
+        else:
+            folder_names.append(folder_names[-1] + "-Feature")
+        
+
+    return folders, folder_names
+
+
 def add_point(row, coordinates):
     """
     Extract the data for a point from the geometry dict, and
@@ -189,22 +239,24 @@ def add_point(row, coordinates):
     row['latitude'] = latitude
     return
 
+
 def add_polygon(folder_name, feature_index, polygons, coordinates):
     """
     Extract the data for a polygon from the geometry dict, and
     add several rows to the `polygons` list.
     """
-    
+
     for polygon_index, points in enumerate(coordinates, start=1):
         for point_index, point in enumerate(points, start=1):
             row = dict(folder_name=folder_name,
-              feature_index=feature_index,
-              polygon_index=polygon_index,
-              point_index=point_index,
-              longitude=point[0],
-              latitude=point[1])
+                       feature_index=feature_index,
+                       polygon_index=polygon_index,
+                       point_index=point_index,
+                       longitude=point[0],
+                       latitude=point[1])
             polygons.append(row)
     return
+
 
 def add_multi_polygon(feature_index, polygons, geometry):
     """
@@ -218,14 +270,13 @@ def add_multi_polygon(feature_index, polygons, geometry):
     for polygon_index, points in enumerate(coordinates, start=1):
         for point_index, point in enumerate(points[0], start=1):
             row = dict(feature_index=feature_index,
-              polygon_index=polygon_index,
-              point_index=point_index,
-              longitude=point[0],
-              latitude=point[1])
+                       polygon_index=polygon_index,
+                       point_index=point_index,
+                       longitude=point[0],
+                       latitude=point[1])
             polygons.append(row)
     return
 
 
 if __name__ == '__main__':
     main()
-
