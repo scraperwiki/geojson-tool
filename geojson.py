@@ -114,7 +114,7 @@ def parse_kml(content, features, polygons):
 
     kml_features = list(k.features())
 
-    # If we have a Folder here then we get the try block, if not we get except
+    # KML files can have features, folders or document at the root level
     folders = []
     folder_names = [] 
 
@@ -124,19 +124,18 @@ def parse_kml(content, features, polygons):
         for f in folder_list:
             folders.append(f.features())
             folder_names.append(f.name)
-    elif type(kml_features[0]) is kml.Document:
+    elif type(kml_features[0]) is kml.Folder:
         # Folder at top level
         feature_list = list(kml_features[0].features())
         folders.append(feature_list)
-    elif type(kml_features[0]) is kml.Document:
-                # Feature at top level
+        folder_names = ["Folder"]
+    elif type(kml_features[0]) is kml.Placemark:
+        # Feature at top level
         feature_list = kml_features
         folders.append(feature_list)
-
-    
+        folder_names = ["Feature"]
 
     # We need to have a list of folders at this point, each containing a list of features
-
     for i, folder in enumerate(folders, start=0):
         # get folder name
         # if we have a placemark or a folder at top level we might want to fake the folder_name
