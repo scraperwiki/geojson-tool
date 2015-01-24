@@ -116,24 +116,33 @@ def parse_kml(content, features, polygons):
 
     # If we have a Folder here then we get the try block, if not we get except
     folders = []
-    try:
+    folder_names = [] 
+
+    if type(kml_features[0]) is kml.Document:
+        #Document at top level
+        folder_list = list(kml_features[0].features())
+        for f in folder_list:
+            folders.append(f.features())
+            folder_names.append(f.name)
+    elif type(kml_features[0]) is kml.Document:
         # Folder at top level
         feature_list = list(kml_features[0].features())
         folders.append(feature_list)
-    except AttributeError:
-        # Feature at top level
+    elif type(kml_features[0]) is kml.Document:
+                # Feature at top level
         feature_list = kml_features
         folders.append(feature_list)
 
-    attributes = [a for a in dir(feature_list[0]) if a[0] is not "_" ]
+    
 
     # We need to have a list of folders at this point, each containing a list of features
-    for folder in folders:
+
+    for i, folder in enumerate(folders, start=0):
         # get folder name
         # if we have a placemark or a folder at top level we might want to fake the folder_name
-        folder_name = folder[0].name
-
+        folder_name = folder_names[i]
         for feature_index, feature in enumerate(folder, start=1):
+            attributes = [a for a in dir(feature) if a[0] is not "_" ]
             #print(feature.to_string())
              # The row we are going to add;
             # it's the properties of the feature.
@@ -150,18 +159,21 @@ def parse_kml(content, features, polygons):
             row['folder_name'] = folder_name
             row['feature_index'] = feature_index
 
-            geometry = feature.geometry
-            if not geometry:
-                continue 
-            if geometry.geom_type == "Point":
-                add_point(row, geometry.coords[0])
-            if geometry.geom_type == "Polygon":
-                add_polygon(folder_name, feature_index, polygons, [geometry.exterior.coords])
-            if geometry.geom_type == "MultiPolygon":
-                kml_polygons = [p.exterior.coords for p in geometry.geoms]
-                add_polygon(folder_name, feature_index, polygons, kml_polygons)
+            try:
+                geometry = feature.geometry
+                if not geometry:
+                    continue 
+                if geometry.geom_type == "Point":
+                    add_point(row, geometry.coords[0])
+                if geometry.geom_type == "Polygon":
+                    add_polygon(folder_name, feature_index, polygons, [geometry.exterior.coords])
+                if geometry.geom_type == "MultiPolygon":
+                    kml_polygons = [p.exterior.coords for p in geometry.geoms]
+                    add_polygon(folder_name, feature_index, polygons, kml_polygons)
 
-            features.append(row)
+                features.append(row)
+            except:
+                print("No geometry in {}".format(feature))
 
     return features, polygons
     
