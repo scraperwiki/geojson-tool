@@ -15,8 +15,9 @@ from fastkml import kml
 import scraperwiki
 
 # Examples
-# https://developers.google.com/kml/documentation/KML_Samples.kml
-# http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml
+# https://developers.google.com/kml/documentation/KML_Samples.kml - Document at root
+# http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml - features at root
+# https://dl.dropboxusercontent.com/u/21886071/CCC_BSC%20Feb2013%20%28clipcoast%20200m%29%20KML%20format.KML - folders at root
 # Minimal test for ipython:
 """
 import requests
@@ -27,6 +28,13 @@ k = kml.KML()
 k.from_string(response.content)
 """
 
+# top_level = list(k.features())
+# top_level[0]
+# <fastkml.kml.Document at 0x23f5610>
+# top_level[0].name
+# folders = list(top_level[0].features())
+# feature_list = list(folders[0].features())
+#
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -107,43 +115,53 @@ def parse_kml(content, features, polygons):
     kml_features = list(k.features())
 
     # If we have a Folder here then we get the try block, if not we get except
+    folders = []
     try:
+        # Folder at top level
         feature_list = list(kml_features[0].features())
+        folders.append(feature_list)
     except AttributeError:
+        # Feature at top level
         feature_list = kml_features
+        folders.append(feature_list)
 
     attributes = [a for a in dir(feature_list[0]) if a[0] is not "_" ]
 
-    for feature_index, feature in enumerate(feature_list, start=1):
-        #print(feature.to_string())
-         # The row we are going to add;
-        # it's the properties of the feature.
-        row = {}
-        for a in attributes:
-            try:
-                value = getattr(feature, a)
-                if type(value) in [str, int]:
-                    row[a] = value
-            except AttributeError:
-                pass
+    # We need to have a list of folders at this point, each containing a list of features
+    for folder in folders:
+        # get folder name
+        # if we have a placemark or a folder at top level we might want to fake the folder_name
+        folder_name = folder[0].name
 
-        # Make sure we have a common key across tables
-        row['feature_index'] = feature_index
+        for feature_index, feature in enumerate(folder, start=1):
+            #print(feature.to_string())
+             # The row we are going to add;
+            # it's the properties of the feature.
+            row = {}
+            for a in attributes:
+                try:
+                    value = getattr(feature, a)
+                    if type(value) in [str, int]:
+                        row[a] = value
+                except AttributeError:
+                    pass
 
-        # Add feature.id to the row if there is one.
+            # Make sure we have a common key across tables
+            row['folder_name'] = folder_name
+            row['feature_index'] = feature_index
 
-        geometry = feature.geometry
-        if not geometry:
-            continue 
-        if geometry.geom_type == "Point":
-            add_point(row, geometry.coords[0])
-        if geometry.geom_type == "Polygon":
-            add_polygon(feature_index, polygons, [geometry.exterior.coords])
-        if geometry.geom_type == "MultiPolygon":
-            kml_polygons = [p.exterior.coords for p in geometry.geoms]
-            add_polygon(feature_index, polygons, kml_polygons)
+            geometry = feature.geometry
+            if not geometry:
+                continue 
+            if geometry.geom_type == "Point":
+                add_point(row, geometry.coords[0])
+            if geometry.geom_type == "Polygon":
+                add_polygon(folder_name, feature_index, polygons, [geometry.exterior.coords])
+            if geometry.geom_type == "MultiPolygon":
+                kml_polygons = [p.exterior.coords for p in geometry.geoms]
+                add_polygon(folder_name, feature_index, polygons, kml_polygons)
 
-        features.append(row)
+            features.append(row)
 
     return features, polygons
     
@@ -160,7 +178,7 @@ def add_point(row, coordinates):
     row['latitude'] = latitude
     return
 
-def add_polygon(feature_index, polygons, coordinates):
+def add_polygon(folder_name, feature_index, polygons, coordinates):
     """
     Extract the data for a polygon from the geometry dict, and
     add several rows to the `polygons` list.
@@ -168,7 +186,8 @@ def add_polygon(feature_index, polygons, coordinates):
     
     for polygon_index, points in enumerate(coordinates, start=1):
         for point_index, point in enumerate(points, start=1):
-            row = dict(feature_index=feature_index,
+            row = dict(folder_name=folder_name,
+              feature_index=feature_index,
               polygon_index=polygon_index,
               point_index=point_index,
               longitude=point[0],
