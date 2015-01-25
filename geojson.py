@@ -151,35 +151,40 @@ def parse_kml(k, features, polygons):
             # Make sure we have a common key across tables
             row['folder_name'] = folder_name
             row['feature_index'] = feature_index
-
             try:
                 geometry = feature.geometry
-                if not geometry:
-                    continue
-                if geometry.geom_type == "Point":
-                    add_point(row, geometry.coords[0])
-                if geometry.geom_type == "Polygon":
-                    add_polygon(
-                        folder_name, feature_index, polygons, [geometry.exterior.coords])
-                if geometry.geom_type == "MultiPolygon":
-                    kml_polygons = [p.exterior.coords for p in geometry.geoms]
-                    add_polygon(
-                        folder_name, feature_index, polygons, kml_polygons)
-                if geometry.geom_type == "GeometryCollection":
-                    print("Found a GeometryCollection")
-                    list(geometry.geoms)
-                    for g in list(geometry.geoms):
-                        print(g.geom_type)
-                    kml_polygons = [p.exterior.coords for p in geometry.geoms]
-                    add_polygon(
-                        folder_name, feature_index, polygons, kml_polygons)
-
-                features.append(row)
+                features, polygons = add_kml_geometry(features, row, polygons, feature_index, folder_name, geometry)
             except:
-                print("No geometry in {}".format(feature))
-
+                pass
+            
     return features, polygons
 
+def add_kml_geometry(features, row, polygons, feature_index, folder_name, geometry):
+    if not geometry:
+        return features, polygons
+    if geometry.geom_type == "Point":
+        add_point(row, geometry.coords[0])
+    if geometry.geom_type == "Polygon":
+        add_polygon(
+            folder_name, feature_index, polygons, [geometry.exterior.coords])
+    if geometry.geom_type == "MultiPolygon":
+        kml_polygons = [p.exterior.coords for p in geometry.geoms]
+        add_polygon(
+            folder_name, feature_index, polygons, kml_polygons)
+    if geometry.geom_type == "GeometryCollection":
+        print("Found a GeometryCollection")
+        list(geometry.geoms)
+        for g in list(geometry.geoms):
+            print(g.geom_type)
+        kml_polygons = [p.exterior.coords for p in geometry.geoms]
+        add_polygon(
+            folder_name, feature_index, polygons, kml_polygons)
+
+    features.append(row)
+    #except:
+     #   print("No geometry in {}".format(feature))
+
+    return features, polygons
 
 def walk_kml_tree(k, folders, folder_names):
     if type(k) is kml.Placemark:
