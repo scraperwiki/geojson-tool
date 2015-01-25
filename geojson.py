@@ -15,6 +15,7 @@ from fastkml import kml
 
 import scraperwiki
 
+global_polygon_index = 0
 # Examples
 # python geojson.py https://developers.google.com/kml/documentation/KML_Samples.kml # Document at root
 # python geojson.py http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml # features at root
@@ -179,13 +180,10 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
         add_polygon(
             folder_name, feature_index, polygons, kml_polygons)
     if geometry.geom_type == "GeometryCollection":
+        # Need to find a way of passing in a polygon index
         for g in list(geometry.geoms):
-            print(feature_index)
-            if feature_index==5:
-                row, features, polygons = add_kml_geometry(
-                    features, row, polygons, feature_index, folder_name, g)
-
-    
+            row, features, polygons = add_kml_geometry(
+                features, row, polygons, feature_index, folder_name, g)
 
     return row, features, polygons
 
@@ -207,10 +205,10 @@ def walk_kml_tree(k, folders, folder_names):
     if type(kml_features[0]) is kml.Document:
         # Handle a Document
         assert len(kml_features) == 1
-        if kml_features[0].name is not None:
-            folder_names.append(kml_features[0].name)
-        else:
-            folder_names.append("Document")
+        #if kml_features[0].name is not None:
+        #    folder_names.append(kml_features[0].name)
+        #else:
+        #    folder_names.append("Document")
 
         for f in list(kml_features[0].features()):
             folders, folder_names = walk_kml_tree(f, folders, folder_names)
@@ -254,12 +252,13 @@ def add_polygon(folder_name, feature_index, polygons, coordinates):
     Extract the data for a polygon from the geometry dict, and
     add several rows to the `polygons` list.
     """
-
+    global global_polygon_index
     for polygon_index, points in enumerate(coordinates, start=1):
+        global_polygon_index = global_polygon_index + 1
         for point_index, point in enumerate(points, start=1):
             row = dict(folder_name=folder_name,
                        feature_index=feature_index,
-                       polygon_index=polygon_index,
+                       polygon_index=global_polygon_index,
                        point_index=point_index,
                        longitude=point[0],
                        latitude=point[1])
