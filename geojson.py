@@ -177,9 +177,9 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
             folder_name, feature_index, polygons, kml_polygons)
     if geometry.geom_type == "GeometryCollection":
         for g in list(geometry.geoms):
-            feature_index = feature_index + 1
-            row, features, polygons = add_kml_geometry(
-                features, row, polygons, feature_index, folder_name, g)
+            if feature_index==5:
+                row, features, polygons = add_kml_geometry(
+                    features, row, polygons, feature_index, folder_name, g)
 
     
 
