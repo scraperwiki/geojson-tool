@@ -8,7 +8,7 @@ import sys
 import requests
 import logging
 import lxml
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 from fastkml import kml
 
@@ -151,11 +151,12 @@ def parse_kml(k, features, polygons):
             # Make sure we have a common key across tables
             row['folder_name'] = folder_name
             row['feature_index'] = feature_index
-            try:
-                geometry = feature.geometry
-                features, polygons = add_kml_geometry(features, row, polygons, feature_index, folder_name, geometry)
-            except:
-                pass
+            #try:
+            geometry = feature.geometry
+            row, features, polygons = add_kml_geometry(features, row, polygons, feature_index, folder_name, geometry)
+            #except:
+            #logging.debug("Exception thrown")
+            #pass
             
     return features, polygons
 
@@ -163,8 +164,10 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
     if not geometry:
         return features, polygons
     if geometry.geom_type == "Point":
+        logging.debug("Adding a point")
         add_point(row, geometry.coords[0])
     if geometry.geom_type == "Polygon":
+        logging.debug("Adding a polygon")
         add_polygon(
             folder_name, feature_index, polygons, [geometry.exterior.coords])
     if geometry.geom_type == "MultiPolygon":
@@ -173,18 +176,16 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
             folder_name, feature_index, polygons, kml_polygons)
     if geometry.geom_type == "GeometryCollection":
         print("Found a GeometryCollection")
-        list(geometry.geoms)
         for g in list(geometry.geoms):
-            print(g.geom_type)
-        kml_polygons = [p.exterior.coords for p in geometry.geoms]
-        add_polygon(
-            folder_name, feature_index, polygons, kml_polygons)
+            logging.debug("Found a {}".format(g.geom_type))
+            row, features, polygons = add_kml_geometry(features, row, polygons, feature_index, folder_name, g)
+
 
     features.append(row)
     #except:
      #   print("No geometry in {}".format(feature))
 
-    return features, polygons
+    return row, features, polygons
 
 def walk_kml_tree(k, folders, folder_names):
     if type(k) is kml.Placemark:
