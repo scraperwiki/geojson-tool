@@ -135,8 +135,6 @@ def parse_kml(k, features, polygons):
         folder_name = folder_names[i]
         for feature_index, feature in enumerate(folder, start=1):
             attributes = [a for a in dir(feature) if a[0] is not "_"]
-            #print(dir(feature.geometry))
-            # print(feature.to_string())
             # The row we are going to add;
             # it's the properties of the feature.
             row = {}
@@ -153,21 +151,21 @@ def parse_kml(k, features, polygons):
             row['feature_index'] = feature_index
             try:
                 geometry = feature.geometry
-                row, features, polygons = add_kml_geometry(features, row, polygons, feature_index, folder_name, geometry)
-            except:
-                logging.debug("Exception thrown")
-            #pass
-            
+                row, features, polygons = add_kml_geometry(
+                    features, row, polygons, feature_index, folder_name, geometry)
+            except Exception as e:
+                logging.debug("Exception thrown: {}".format(e.message))
+            # pass
+
     return features, polygons
+
 
 def add_kml_geometry(features, row, polygons, feature_index, folder_name, geometry):
     if not geometry:
         return features, polygons
     if geometry.geom_type == "Point":
-        logging.debug("Adding a point")
         add_point(row, geometry.coords[0])
     if geometry.geom_type == "Polygon":
-        logging.debug("Adding a polygon")
         add_polygon(
             folder_name, feature_index, polygons, [geometry.exterior.coords])
     if geometry.geom_type == "MultiPolygon":
@@ -175,17 +173,14 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
         add_polygon(
             folder_name, feature_index, polygons, kml_polygons)
     if geometry.geom_type == "GeometryCollection":
-        logging.debug("Found a GeometryCollection")
         for g in list(geometry.geoms):
-            logging.debug("Found a {}".format(g.geom_type))
-            row, features, polygons = add_kml_geometry(features, row, polygons, feature_index, folder_name, g)
-
+            row, features, polygons = add_kml_geometry(
+                features, row, polygons, feature_index, folder_name, g)
 
     features.append(row)
-    #except:
-     #   print("No geometry in {}".format(feature))
 
     return row, features, polygons
+
 
 def walk_kml_tree(k, folders, folder_names):
     if type(k) is kml.Placemark:
@@ -195,10 +190,10 @@ def walk_kml_tree(k, folders, folder_names):
             folder_names = ["Feature"]
         else:
             folder_names.append(folder_names[-1] + "-Feature")
-        return folders, folder_names 
+        return folders, folder_names
 
     kml_features = list(k.features())
-    if len(kml_features) ==  0:
+    if len(kml_features) == 0:
         return folders, folder_names
 
     if type(kml_features[0]) is kml.Document:
@@ -216,9 +211,10 @@ def walk_kml_tree(k, folders, folder_names):
         feature_list = list(kml_features[0].features())
         folders.append(feature_list)
         if len(folder_names) == 0:
-            folder_names = ["Folder"] #kml_features[0].name
+            folder_names = ["Folder"]  # kml_features[0].name
         else:
-            folder_names.append(folder_names[-1] + "Folder") #kml_features[0].name)
+            # kml_features[0].name)
+            folder_names.append(folder_names[-1] + "Folder")
     elif type(kml_features[0]) is kml.Placemark:
         # Feature at top level
         feature_list = kml_features
@@ -227,7 +223,6 @@ def walk_kml_tree(k, folders, folder_names):
             folder_names = ["Feature"]
         else:
             folder_names.append(folder_names[-1] + "-Feature")
-        
 
     return folders, folder_names
 
