@@ -8,7 +8,7 @@ import sys
 import requests
 import logging
 import lxml
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 from fastkml import kml
 
@@ -151,11 +151,11 @@ def parse_kml(k, features, polygons):
             # Make sure we have a common key across tables
             row['folder_name'] = folder_name
             row['feature_index'] = feature_index
-            #try:
-            geometry = feature.geometry
-            row, features, polygons = add_kml_geometry(features, row, polygons, feature_index, folder_name, geometry)
-            #except:
-            #logging.debug("Exception thrown")
+            try:
+                geometry = feature.geometry
+                row, features, polygons = add_kml_geometry(features, row, polygons, feature_index, folder_name, geometry)
+            except:
+                logging.debug("Exception thrown")
             #pass
             
     return features, polygons
@@ -175,7 +175,7 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
         add_polygon(
             folder_name, feature_index, polygons, kml_polygons)
     if geometry.geom_type == "GeometryCollection":
-        print("Found a GeometryCollection")
+        logging.debug("Found a GeometryCollection")
         for g in list(geometry.geoms):
             logging.debug("Found a {}".format(g.geom_type))
             row, features, polygons = add_kml_geometry(features, row, polygons, feature_index, folder_name, g)
