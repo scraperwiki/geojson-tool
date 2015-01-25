@@ -8,8 +8,8 @@ import sys
 import requests
 import logging
 import lxml
-#logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig()
+logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig()
 
 from fastkml import kml
 
@@ -167,6 +167,7 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
         return features, polygons
     if geometry.geom_type == "Point":
         add_point(row, geometry.coords[0])
+        features.append(row)
     if geometry.geom_type == "Polygon":
         add_polygon(
             folder_name, feature_index, polygons, [geometry.exterior.coords])
@@ -179,7 +180,7 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
             row, features, polygons = add_kml_geometry(
                 features, row, polygons, feature_index, folder_name, g)
 
-    features.append(row)
+    
 
     return row, features, polygons
 
@@ -191,7 +192,7 @@ def walk_kml_tree(k, folders, folder_names):
         if len(folder_names) == 0:
             folder_names = ["Feature"]
         else:
-            folder_names.append(folder_names[-1] + "-Feature")
+            folder_names.append(k.name)
         return folders, folder_names
 
     kml_features = list(k.features())
@@ -213,10 +214,10 @@ def walk_kml_tree(k, folders, folder_names):
         feature_list = list(kml_features[0].features())
         folders.append(feature_list)
         if len(folder_names) == 0:
-            folder_names = ["Folder"]  # kml_features[0].name
+            folder_names = [kml_features[0].name]  # kml_features[0].name
         else:
             # kml_features[0].name)
-            folder_names.append(folder_names[-1] + "Folder")
+            folder_names.append(kml_features[0].name)
     elif type(kml_features[0]) is kml.Placemark:
         # Feature at top level
         feature_list = kml_features
@@ -224,7 +225,7 @@ def walk_kml_tree(k, folders, folder_names):
         if len(folder_names) == 0:
             folder_names = ["Feature"]
         else:
-            folder_names.append(folder_names[-1] + "-Feature")
+            folder_names.append("Feature")
 
     return folders, folder_names
 
