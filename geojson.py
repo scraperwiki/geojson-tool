@@ -130,12 +130,14 @@ def parse_kml(k, features, polygons):
 
     # We need to have a list of folders at this point, each containing a list
     # of features
+    grand_index = 1
     for i, folder in enumerate(folders, start=0):
         # get folder name
         # if we have a placemark or a folder at top level we might want to fake
         # the folder_name
         folder_name = folder_names[i]
         for feature_index, feature in enumerate(folder, start=1):
+            grand_index = grand_index + 1
             attributes = [a for a in dir(feature) if a[0] is not "_"]
             # The row we are going to add;
             # it's the properties of the feature.
@@ -150,11 +152,12 @@ def parse_kml(k, features, polygons):
 
             # Make sure we have a common key across tables
             row['folder_name'] = folder_name
-            row['feature_index'] = feature_index
+            #row['feature_index'] = feature_index
+            row['feature_index'] = grand_index
             try:
                 geometry = feature.geometry
                 row, features, polygons = add_kml_geometry(
-                    features, row, polygons, feature_index, folder_name, geometry)
+                    features, row, polygons, grand_index, folder_name, geometry)
             except Exception as e:
                 logging.debug("Exception thrown: {}".format(e.message))
             # pass
@@ -177,6 +180,7 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
             folder_name, feature_index, polygons, kml_polygons)
     if geometry.geom_type == "GeometryCollection":
         for g in list(geometry.geoms):
+            print(feature_index)
             if feature_index==5:
                 row, features, polygons = add_kml_geometry(
                     features, row, polygons, feature_index, folder_name, g)
