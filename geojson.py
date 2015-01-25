@@ -8,7 +8,8 @@ import sys
 import requests
 import logging
 import lxml
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig()
 
 from fastkml import kml
 
@@ -46,6 +47,7 @@ def main(argv=None):
     if len(arg) > 0:
         # Developers can supply URL as an argument...
         url = arg[0]
+        logging.basicConfig(level=logging.DEBUG)
     else:
         # ... but normally the URL comes from the allSettings.json file
         with open(os.path.expanduser("~/allSettings.json")) as settings:
