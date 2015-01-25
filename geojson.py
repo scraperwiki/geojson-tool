@@ -8,8 +8,8 @@ import sys
 import requests
 import logging
 import lxml
-logging.basicConfig(level=logging.DEBUG)
-#logging.basicConfig()
+#logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig()
 
 from fastkml import kml
 
