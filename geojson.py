@@ -8,19 +8,18 @@ import sys
 import requests
 import logging
 import lxml
-#logging.basicConfig(level=logging.DEBUG)
-
 
 from fastkml import kml
 
 import scraperwiki
 
-# Examples
+global_polygon_index = 0
+# KML Examples
 # python geojson.py https://developers.google.com/kml/documentation/KML_Samples.kml # Document at root
 # python geojson.py http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml # features at root
 # python geojson.py https://dl.dropboxusercontent.com/u/21886071/CCC_BSC%20Feb2013%20%28clipcoast%20200m%29%20KML%20format.KML # folders at root
 # python geojson.py https://dl.dropboxusercontent.com/u/21886071/countries_world.kml # document at root but no folders?
-# Minimal test for ipython:
+# KML test script for ipython:
 """
 import requests
 from fastkml import kml
@@ -30,15 +29,6 @@ k = kml.KML()
 k.from_string(response.content)
 """
 
-# top_level = list(k.features())
-# top_level[0]
-# <fastkml.kml.Document at 0x23f5610>
-# top_level[0].name
-# folders = list(top_level[0].features())
-# feature_list = list(folders[0].features())
-#
-
-
 def main(argv=None):
     if argv is None:
         argv = sys.argv
@@ -47,7 +37,6 @@ def main(argv=None):
     if len(arg) > 0:
         # Developers can supply URL as an argument...
         url = arg[0]
-        logging.basicConfig(level=logging.DEBUG)
     else:
         # ... but normally the URL comes from the allSettings.json file
         with open(os.path.expanduser("~/allSettings.json")) as settings:
@@ -73,28 +62,32 @@ def convert_one(url):
 
     features = []
     polygons = []
-
+    # Try to parse JSON and if that fails, assume KML
     try:
+        # Avoid using response.json() because it assumes ISO-8859-1 instead of
+        # utf-8 when the server doesn't say. And as per
+        # https://tools.ietf.org/html/rfc7159 JSON will most likely be
+        # encoded in utf-8. Passing the raw (byte) string to json.loads()
+        # does the Right Thing.
         j = json.loads(content)
         features, polygons = parse_geojson(j, features, polygons)
     except:
+        # Handle KML using the fastkml library
         k = kml.KML()
         k.from_string(content)
         features, polygons = parse_kml(k, features, polygons)
 
-    logging.debug(("Writing {} features, and {} polygons to db".format(
+    logging.debug(("Writing {} features, and {} polygon elements to db".format(
         len(features), len(polygons))))
     scraperwiki.sql.save([], features, table_name="feature")
     scraperwiki.sql.save([], polygons, table_name="polygon")
 
 
 def parse_geojson(j, features, polygons):
-
-    # Avoid using response.json() because it assumes ISO-8859-1 instead of
-    # utf-8 when the server doesn't say. And as per
-    # https://tools.ietf.org/html/rfc7159 JSON will most likely be
-    # encoded in utf-8. Passing the raw (byte) string to json.loads()
-    # does the Right Thing.
+    """
+    Take a geojson dictionary and parse out points, polygons and multipolygons
+    into features and polygons arrays
+    """
 
     for feature_index, feature in enumerate(j['features'], start=1):
         # The row we are going to add;
@@ -127,51 +120,55 @@ def parse_geojson(j, features, polygons):
 
 
 def parse_kml(k, features, polygons):
-
+    """
+    Take a fastkml object and parse out points, polygons and multipolygons
+    into features and polygons arrays
+    """
     # KML files can have features, folders or document at the root level
+    # Documents and Folders can be nested inside one another
+    # 
     folders = []
     folder_names = []
 
+    # Folders can exist inside folders and Documents hence we recurse
     folders, folder_names = walk_kml_tree(k, folders, folder_names)
 
-    # We need to have a list of folders at this point, each containing a list
-    # of features
-    grand_index = 1
+    # We need to have a list of folders at this point with a matching list of
+    # folder names. Each folder contains a list of features
+
     for i, folder in enumerate(folders, start=0):
-        # get folder name
-        # if we have a placemark or a folder at top level we might want to fake
-        # the folder_name
         folder_name = folder_names[i]
         for feature_index, feature in enumerate(folder, start=1):
-            grand_index = grand_index + 1
+            # We store the str, int and float attributes of a feature
             attributes = [a for a in dir(feature) if a[0] is not "_"]
-            # The row we are going to add;
-            # it's the properties of the feature.
             row = {}
             for a in attributes:
                 try:
                     value = getattr(feature, a)
-                    if type(value) in [str, int]:
+                    if type(value) in [str, int, float]:
                         row[a] = value
                 except AttributeError:
                     pass
 
             # Make sure we have a common key across tables
             row['folder_name'] = folder_name
-            #row['feature_index'] = feature_index
-            row['feature_index'] = grand_index
-            #try:
-            geometry = feature.geometry
-            row, features, polygons = add_kml_geometry(
-                features, row, polygons, grand_index, folder_name, geometry)
-        #except Exception as e:
-            #    logging.debug("Exception thrown: {}".format(e.message))
+            row['feature_index'] = feature_index
+            try:
+                geometry = feature.geometry
+                row, features, polygons = add_kml_geometry(
+                    features, row, polygons, feature_index, folder_name, geometry)
+            except Exception as e:
+                logging.debug("Exception thrown: {}".format(e.message))
             # pass
 
     return features, polygons
 
 
 def add_kml_geometry(features, row, polygons, feature_index, folder_name, geometry):
+    """
+    Take fastkml geometry object and put coordinates of points into features array.
+    Coordinates of Polygons and MultiPolygons into polygons array
+    """
     if not geometry:
         return features, polygons
     if geometry.geom_type == "Point":
@@ -182,19 +179,24 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
                     folder_name=folder_name)
         features.append(row)
     if geometry.geom_type == "MultiPolygon":
+        # Multipolygons are handled by add_polygon, not add_multi_polygon
+        # which is used for geojson, this may be a Bad Thing
         kml_polygons = [p.exterior.coords for p in geometry.geoms]
         add_polygon(feature_index, polygons, kml_polygons, 
                     folder_name=folder_name)
     if geometry.geom_type == "GeometryCollection":
         for g in list(geometry.geoms):
-            if feature_index==5:
-                row, features, polygons = add_kml_geometry(
+            row, features, polygons = add_kml_geometry(
                     features, row, polygons, feature_index, folder_name, g)
 
     return row, features, polygons
 
 
 def walk_kml_tree(k, folders, folder_names):
+    """
+    Walk the KML tree recursively, Documents and Folders can lie within one
+    another. Placemarks are the leaf nodes
+    """
     if type(k) is kml.Placemark:
         # Feature at top level
         folders.append([k])
@@ -258,12 +260,13 @@ def add_polygon(feature_index, polygons, coordinates, folder_name=None):
     Extract the data for a polygon from the geometry dict, and
     add several rows to the `polygons` list.
     """
-
+    global global_polygon_index
     for polygon_index, points in enumerate(coordinates, start=1):
+        global_polygon_index = global_polygon_index + 1
         for point_index, point in enumerate(points, start=1):
             row = dict(folder_name=folder_name,
                        feature_index=feature_index,
-                       polygon_index=polygon_index,
+                       polygon_index=global_polygon_index,
                        point_index=point_index,
                        longitude=point[0],
                        latitude=point[1])
