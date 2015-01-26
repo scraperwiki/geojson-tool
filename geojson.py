@@ -107,9 +107,9 @@ def parse_geojson(j, features, polygons):
         if geometry.get('type') == "Point":
             add_point(row, geometry["coordinates"])
         if geometry.get('type') == "Polygon":
-            add_polygon(feature_index, polygons, geometry['coordinates'])
+            add_polygon(row, feature_index, polygons, geometry['coordinates'])
         if geometry.get('type') == "MultiPolygon":
-            add_multi_polygon(feature_index, polygons, geometry)
+            add_multi_polygon(row, feature_index, polygons, geometry)
 
         features.append(row)
 
@@ -172,14 +172,14 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
         add_point(row, geometry.coords[0])
         features.append(row)
     if geometry.geom_type == "Polygon":
-        add_polygon(feature_index, polygons, [geometry.exterior.coords],
+        add_polygon(row, feature_index, polygons, [geometry.exterior.coords],
                     folder_name=folder_name)
-        features.append(row)
+        # features.append(row)
     if geometry.geom_type == "MultiPolygon":
         # Multipolygons are handled by add_polygon, not add_multi_polygon
         # which is used for geojson, this may be a Bad Thing
         kml_polygons = [p.exterior.coords for p in geometry.geoms]
-        add_polygon(feature_index, polygons, kml_polygons,
+        add_polygon(row, feature_index, polygons, kml_polygons,
                     folder_name=folder_name)
     if geometry.geom_type == "GeometryCollection":
         for g in list(geometry.geoms):
@@ -252,7 +252,7 @@ def add_point(row, coordinates):
     return
 
 
-def add_polygon(feature_index, polygons, coordinates, folder_name=None):
+def add_polygon(row, feature_index, polygons, coordinates, folder_name=None):
     """
     Extract the data for a polygon from the geometry dict, and
     add several rows to the `polygons` list.
@@ -261,33 +261,36 @@ def add_polygon(feature_index, polygons, coordinates, folder_name=None):
     for polygon_index, points in enumerate(coordinates, start=1):
         global_polygon_index = global_polygon_index + 1
         for point_index, point in enumerate(points, start=1):
-            row = dict(folder_name=folder_name,
-                       feature_index=feature_index,
-                       polygon_index=global_polygon_index,
-                       point_index=point_index,
-                       longitude=point[0],
-                       latitude=point[1])
+            row['folder_name'] = folder_name
+            row['feature_index'] = feature_index
+            row['polygon_index'] = global_polygon_index
+            row['point_index'] = point_index
+            row['longitude'] = point[0]
+            row['latitude'] = point[1]
 
             polygons.append(row)
     return
 
 
-def add_multi_polygon(feature_index, polygons, geometry):
+def add_multi_polygon(row, feature_index, polygons, geometry, folder_name=None):
     """
     Extract the data for multiple polygons from the geometry dict, and
     add several rows to the `polygons` list.
     """
-
+    global global_polygon_index
     assert geometry.get('type') == "MultiPolygon"
 
     coordinates = geometry['coordinates']
     for polygon_index, points in enumerate(coordinates, start=1):
+        global_polygon_index = global_polygon_index + 1
         for point_index, point in enumerate(points[0], start=1):
-            row = dict(feature_index=feature_index,
-                       polygon_index=polygon_index,
-                       point_index=point_index,
-                       longitude=point[0],
-                       latitude=point[1])
+            row['folder_name'] = folder_name
+            row['feature_index'] = feature_index
+            row['polygon_index'] = global_polygon_index
+            row['point_index'] = point_index
+            row['longitude'] = point[0]
+            row['latitude'] = point[1]
+
             polygons.append(row)
     return
 
