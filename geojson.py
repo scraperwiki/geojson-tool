@@ -9,7 +9,7 @@ import requests
 import logging
 import lxml
 #logging.basicConfig(level=logging.DEBUG)
-logging.basicConfig()
+
 
 from fastkml import kml
 
@@ -52,7 +52,8 @@ def main(argv=None):
         # ... but normally the URL comes from the allSettings.json file
         with open(os.path.expanduser("~/allSettings.json")) as settings:
             url = json.load(settings)['source-url']
-
+        logging.basicConfig()
+        
     return convert_one(url)
 
 
@@ -60,7 +61,14 @@ def convert_one(url):
     """
     Convert a single URL.
     """
-    response = requests.get(url)
+    if url.lower().startswith("http"):
+        response = requests.get(url)
+        content = response.content
+    else:
+        with open(url, "rb") as f:
+            content = f.read()
+
+
 
     scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
     scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
@@ -69,11 +77,11 @@ def convert_one(url):
     polygons = []
 
     try:
-        j = json.loads(response.content)
+        j = json.loads(content)
         features, polygons = parse_geojson(j, features, polygons)
     except:
         k = kml.KML()
-        k.from_string(response.content)
+        k.from_string(content)
         features, polygons = parse_kml(k, features, polygons)
 
     logging.debug(("Writing {} features, and {} polygons to db".format(
@@ -180,7 +188,6 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
             folder_name, feature_index, polygons, kml_polygons)
     if geometry.geom_type == "GeometryCollection":
         for g in list(geometry.geoms):
-            print(feature_index)
             if feature_index==5:
                 row, features, polygons = add_kml_geometry(
                     features, row, polygons, feature_index, folder_name, g)
