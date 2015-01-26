@@ -53,7 +53,7 @@ def main(argv=None):
         with open(os.path.expanduser("~/allSettings.json")) as settings:
             url = json.load(settings)['source-url']
         logging.basicConfig()
-        
+
     return convert_one(url)
 
 
@@ -67,8 +67,6 @@ def convert_one(url):
     else:
         with open(url, "rb") as f:
             content = f.read()
-
-
 
     scraperwiki.sql.execute("DROP TABLE IF EXISTS feature")
     scraperwiki.sql.execute("DROP TABLE IF EXISTS polygon")
@@ -162,12 +160,12 @@ def parse_kml(k, features, polygons):
             row['folder_name'] = folder_name
             #row['feature_index'] = feature_index
             row['feature_index'] = grand_index
-            try:
-                geometry = feature.geometry
-                row, features, polygons = add_kml_geometry(
-                    features, row, polygons, grand_index, folder_name, geometry)
-            except Exception as e:
-                logging.debug("Exception thrown: {}".format(e.message))
+            #try:
+            geometry = feature.geometry
+            row, features, polygons = add_kml_geometry(
+                features, row, polygons, grand_index, folder_name, geometry)
+        #except Exception as e:
+            #    logging.debug("Exception thrown: {}".format(e.message))
             # pass
 
     return features, polygons
@@ -180,12 +178,13 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
         add_point(row, geometry.coords[0])
         features.append(row)
     if geometry.geom_type == "Polygon":
-        add_polygon(
-            folder_name, feature_index, polygons, [geometry.exterior.coords])
+        add_polygon(feature_index, polygons, [geometry.exterior.coords], 
+                    folder_name=folder_name)
+        features.append(row)
     if geometry.geom_type == "MultiPolygon":
         kml_polygons = [p.exterior.coords for p in geometry.geoms]
-        add_polygon(
-            folder_name, feature_index, polygons, kml_polygons)
+        add_polygon(feature_index, polygons, kml_polygons, 
+                    folder_name=folder_name)
     if geometry.geom_type == "GeometryCollection":
         for g in list(geometry.geoms):
             if feature_index==5:
@@ -256,7 +255,7 @@ def add_point(row, coordinates):
     return
 
 
-def add_polygon(folder_name, feature_index, polygons, coordinates):
+def add_polygon(feature_index, polygons, coordinates, folder_name=None):
     """
     Extract the data for a polygon from the geometry dict, and
     add several rows to the `polygons` list.
@@ -270,6 +269,7 @@ def add_polygon(folder_name, feature_index, polygons, coordinates):
                        point_index=point_index,
                        longitude=point[0],
                        latitude=point[1])
+
             polygons.append(row)
     return
 
