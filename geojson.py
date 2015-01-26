@@ -252,7 +252,7 @@ def add_point(row, coordinates):
     return
 
 
-def add_polygon(row, feature_index, polygons, coordinates, folder_name=None):
+def add_polygon(base_row, feature_index, polygons, coordinates, folder_name=None):
     """
     Extract the data for a polygon from the geometry dict, and
     add several rows to the `polygons` list.
@@ -261,6 +261,7 @@ def add_polygon(row, feature_index, polygons, coordinates, folder_name=None):
     for polygon_index, points in enumerate(coordinates, start=1):
         global_polygon_index = global_polygon_index + 1
         for point_index, point in enumerate(points, start=1):
+            row = base_row.copy()
             row['folder_name'] = folder_name
             row['feature_index'] = feature_index
             row['polygon_index'] = global_polygon_index
@@ -272,7 +273,7 @@ def add_polygon(row, feature_index, polygons, coordinates, folder_name=None):
     return
 
 
-def add_multi_polygon(row, feature_index, polygons, geometry, folder_name=None):
+def add_multi_polygon(base_row, feature_index, polygons, geometry, folder_name=None):
     """
     Extract the data for multiple polygons from the geometry dict, and
     add several rows to the `polygons` list.
@@ -284,6 +285,7 @@ def add_multi_polygon(row, feature_index, polygons, geometry, folder_name=None):
     for polygon_index, points in enumerate(coordinates, start=1):
         global_polygon_index = global_polygon_index + 1
         for point_index, point in enumerate(points[0], start=1):
+            row = base_row.copy()
             row['folder_name'] = folder_name
             row['feature_index'] = feature_index
             row['polygon_index'] = global_polygon_index
