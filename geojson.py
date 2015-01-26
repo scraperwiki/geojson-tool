@@ -4,6 +4,7 @@ from __future__ import print_function
 import json
 import os
 import sys
+import time
 
 import requests
 import logging
@@ -14,20 +15,7 @@ from fastkml import kml
 import scraperwiki
 
 global_polygon_index = 0
-# KML Examples
-# python geojson.py https://developers.google.com/kml/documentation/KML_Samples.kml # Document at root
-# python geojson.py http://kml-samples.googlecode.com/svn/trunk/kml/Placemark/placemark.kml # features at root
-# python geojson.py https://dl.dropboxusercontent.com/u/21886071/CCC_BSC%20Feb2013%20%28clipcoast%20200m%29%20KML%20format.KML # folders at root
-# python geojson.py https://dl.dropboxusercontent.com/u/21886071/countries_world.kml # document at root but no folders?
-# KML test script for ipython:
-"""
-import requests
-from fastkml import kml
-url = "https://dl.dropboxusercontent.com/u/21886071/countries_world.kml"
-response = requests.get(url)
-k = kml.KML()
-k.from_string(response.content)
-"""
+
 
 def main(argv=None):
     if argv is None:
@@ -44,13 +32,21 @@ def main(argv=None):
             url = json.load(settings)['source-url']
         logging.basicConfig()
 
-    return convert_one(url)
+    t0 = time.time()
+    logging.debug("Processing {}".format(url))
+    convert_one(url)
+    t1 = time.time()
+    logging.debug(
+        "Total time for processing {0} is {1:.2f} seconds".format(url, t1 - t0))
+    logging.debug("\n")
+    return  # convert_one(url)
 
 
 def convert_one(url):
     """
     Convert a single URL.
     """
+
     if url.lower().startswith("http"):
         response = requests.get(url)
         content = response.content
@@ -127,7 +123,7 @@ def parse_kml(k, features, polygons):
     """
     # KML files can have features, folders or document at the root level
     # Documents and Folders can be nested inside one another
-    # 
+    #
     folders = []
     folder_names = []
 
@@ -176,19 +172,19 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
         add_point(row, geometry.coords[0])
         features.append(row)
     if geometry.geom_type == "Polygon":
-        add_polygon(feature_index, polygons, [geometry.exterior.coords], 
+        add_polygon(feature_index, polygons, [geometry.exterior.coords],
                     folder_name=folder_name)
         features.append(row)
     if geometry.geom_type == "MultiPolygon":
         # Multipolygons are handled by add_polygon, not add_multi_polygon
         # which is used for geojson, this may be a Bad Thing
         kml_polygons = [p.exterior.coords for p in geometry.geoms]
-        add_polygon(feature_index, polygons, kml_polygons, 
+        add_polygon(feature_index, polygons, kml_polygons,
                     folder_name=folder_name)
     if geometry.geom_type == "GeometryCollection":
         for g in list(geometry.geoms):
             row, features, polygons = add_kml_geometry(
-                    features, row, polygons, feature_index, folder_name, g)
+                features, row, polygons, feature_index, folder_name, g)
 
     return row, features, polygons
 
