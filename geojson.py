@@ -191,8 +191,6 @@ def add_kml_geometry(features, row, polygons, feature_index, folder_name, geomet
                 row, features, polygons = add_kml_geometry(
                     features, row, polygons, feature_index, folder_name, g)
 
-    
-
     return row, features, polygons
 
 
