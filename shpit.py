@@ -90,4 +90,4 @@ def main(argv=None):
     shape1(arg[0])
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
